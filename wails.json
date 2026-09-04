@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "multi-kimi",
+  "outputfilename": "multi-kimi",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "multi-kimi"
+  },
+  "info": {
+    "productName": "multi-kimi",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2026",
+    "comments": "Kimi Code 多账号凭据切换工具"
+  }
+}
