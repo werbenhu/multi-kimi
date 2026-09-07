@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlantern/systray"
+	"github.com/energye/systray"
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -56,8 +56,8 @@ func (a *App) onTrayReady() {
 	a.tray.ready = true
 	a.tray.mu.Unlock()
 
-	go a.watchTrayClicks(show, a.showMainWindow)
-	go a.watchTrayClicks(refresh, func() {
+	show.Click(a.showMainWindow)
+	refresh.Click(func() {
 		a.setTrayStatus("正在刷新…")
 		if err := a.refreshTrayMenu(); err != nil {
 			a.setTrayStatus("刷新失败：" + compactTrayText(err.Error()))
@@ -65,7 +65,7 @@ func (a *App) onTrayReady() {
 		}
 		a.setTrayStatus("已刷新 · 切换账号请打开主窗口")
 	})
-	go a.watchTrayClicks(quit, func() {
+	quit.Click(func() {
 		a.stopTray()
 		if a.ctx != nil {
 			wruntime.Quit(a.ctx)
@@ -74,12 +74,6 @@ func (a *App) onTrayReady() {
 
 	if err := a.refreshTrayMenu(); err != nil {
 		a.setTrayStatus("读取账号失败：" + compactTrayText(err.Error()))
-	}
-}
-
-func (a *App) watchTrayClicks(item *systray.MenuItem, action func()) {
-	for range item.ClickedCh {
-		action()
 	}
 }
 
