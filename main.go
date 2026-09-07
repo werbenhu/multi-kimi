@@ -11,6 +11,9 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// version 通过 -ldflags "-X main.version=..." 注入，CI/Release 中设置为 git tag。
+var version = "dev"
+
 func main() {
 	app := NewApp()
 

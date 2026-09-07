@@ -293,7 +293,7 @@ func (a *App) AppInfo() map[string]string {
 		root = s.Root
 	}
 	return map[string]string{
-		"version":   "1.0.0",
+		"version":   version,
 		"storeRoot": root,
 		"go":        runtime.Version(),
 		"now":       time.Now().Format("2006-01-02 15:04:05"),

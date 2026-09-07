@@ -1,0 +1,185 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "已有 tag 名称（如 v1.0.0）；留空则用当前 ref"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: "1.24.0"
+  NODE_VERSION: "22.12.0"
+  WAILS_VERSION: "v2.12.0"
+
+jobs:
+  build:
+    name: Build ${{ matrix.slug }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows/amd64
+            slug: windows-amd64
+            os: windows-latest
+          - platform: windows/arm64
+            slug: windows-arm64
+            os: windows-latest
+          - platform: darwin/amd64
+            slug: darwin-amd64
+            os: macos-15-intel
+          - platform: darwin/arm64
+            slug: darwin-arm64
+            os: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            VERSION="${{ inputs.tag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            VERSION="$(cat VERSION 2>/dev/null | tr -d '[:space:]')"
+            VERSION="${VERSION:-dev}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION}"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails CLI
+        shell: bash
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build
+        shell: bash
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          VERSION="${{ steps.version.outputs.version }}"
+          LDFLAGS="-s -w -X main.version=${VERSION}"
+          wails build \
+            -clean \
+            -trimpath \
+            -platform "${{ matrix.platform }}" \
+            -ldflags "${LDFLAGS}" \
+            -o "multi-kimi"
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          SLUG="${{ matrix.slug }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          echo "build/bin contents:"
+          ls -laR build/bin || true
+
+          case "${SLUG}" in
+            windows-*)
+              SRC="$(find build/bin -type f \( -name '*.exe' -o -name 'multi-kimi' \) | head -n 1)"
+              if [ -z "${SRC}" ]; then
+                echo "Windows binary not found under build/bin" >&2
+                exit 1
+              fi
+              OUT="dist/multi-kimi-${VERSION}-${SLUG}.exe"
+              cp "${SRC}" "${OUT}"
+              ;;
+            darwin-*)
+              APP="$(find build/bin -type d -name '*.app' | head -n 1)"
+              if [ -n "${APP}" ]; then
+                OUT="dist/multi-kimi-${VERSION}-${SLUG}.app.zip"
+                (cd "$(dirname "${APP}")" && zip -qry "${GITHUB_WORKSPACE}/${OUT}" "$(basename "${APP}")")
+              else
+                BIN="$(find build/bin -type f -name 'multi-kimi*' | head -n 1)"
+                if [ -z "${BIN}" ]; then
+                  echo "macOS artifact not found under build/bin" >&2
+                  exit 1
+                fi
+                BIN_NAME="multi-kimi-${VERSION}-${SLUG}"
+                cp "${BIN}" "dist/${BIN_NAME}"
+                (cd dist && tar -czf "${BIN_NAME}.tar.gz" "${BIN_NAME}")
+                rm -f "dist/${BIN_NAME}"
+              fi
+              ;;
+            *)
+              echo "Unknown platform slug: ${SLUG}" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "Packaged files:"
+          ls -la dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-kimi-${{ steps.version.outputs.version }}-${{ matrix.slug }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
+    steps:
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            VERSION="${{ inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: multi-kimi-${{ steps.version.outputs.version }}-*
+          merge-multiple: true
+
+      - name: List release assets
+        run: find release-assets -type f | sort
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: multi-kimi ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: release-assets/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
