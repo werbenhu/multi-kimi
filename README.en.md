@@ -4,6 +4,12 @@ English | [简体中文](README.md)
 
 multi-kimi — a desktop tool for switching login credentials across multiple **Kimi Code** accounts with one click, plus a live view of each account's usage.
 
+## Screenshot
+
+![multi-kimi interface showing account switching and usage](docs/screenshots/overview-en.png)
+
+*Screenshot uses sample accounts and usage data.*
+
 ## Features
 
 - **Multi-account switching**: save as many accounts as you like (e.g. `work` / `personal`) and switch instantly — no re-login needed;
