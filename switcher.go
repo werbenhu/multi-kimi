@@ -141,10 +141,6 @@ func (s *Store) switchTo(cliID, target string) (*SwitchResult, error) {
 	s.touchMeta(cliID, target)
 
 	res.Warnings = append(res.Warnings, envBypassWarnings(def)...)
-	if !res.NoOp {
-		res.Warnings = append(res.Warnings,
-			fmt.Sprintf("凭据文件已切换为 %q。如果已有 %s 进程在运行，请重启该进程或重新打开终端，否则旧进程会继续使用缓存的账号", target, def.Name))
-	}
 	return res, nil
 }
 

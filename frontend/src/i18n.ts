@@ -22,7 +22,6 @@ const messages = {
   },
   emptyNoLiveB: {zh: '，再回到这里保存。', en: ', then come back here to save it.'},
   savedAccounts: {zh: '已保存账号', en: 'Saved accounts'},
-  profilesMeta: {zh: '{count} 个 · 切换后请重启 {name}', en: '{count} · restart {name} after switching'},
   missingSnapshot: {zh: '快照缺失', en: 'Snapshot missing'},
   currentLabel: {zh: '当前', en: 'Current'},
   updatedAt: {zh: '更新于 {time}', en: 'Updated {time}'},
@@ -48,7 +47,6 @@ const messages = {
   capturedToast: {zh: '已保存账号「{name}」', en: 'Account "{name}" saved'},
   notePrefix: {zh: '注意：{msg}', en: 'Note: {msg}'},
   alreadyActive: {zh: '「{name}」已是当前账号', en: '"{name}" is already active'},
-  switchedTo: {zh: '已切换到「{name}」', en: 'Switched to "{name}"'},
   recaptureModalTitle: {zh: '重新捕获「{name}」', en: 'Re-capture "{name}"'},
   recaptureModalBody: {
     zh: '将用当前 live 凭据（{path}）覆盖该账号的快照。此操作不可撤销，确定继续？',

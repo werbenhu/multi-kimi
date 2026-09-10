@@ -44,6 +44,11 @@ func (a *App) onTrayReady() {
 	systray.SetIcon(trayIcon)
 	systray.SetTooltip("multi-kimi")
 
+	// 左键单击直接唤出主窗口。右键不注册回调，由 systray 默认弹出菜单。
+	systray.SetOnClick(func(systray.IMenu) {
+		a.showMainWindow()
+	})
+
 	show := systray.AddMenuItem("显示主窗口", "打开 multi-kimi")
 	a.tray.status = systray.AddMenuItem("切换账号请打开主窗口", "")
 	a.tray.status.Disable()

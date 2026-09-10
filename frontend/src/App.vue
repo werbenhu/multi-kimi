@@ -62,7 +62,6 @@
         <div v-else class="profiles-block">
           <div class="section-head">
             <h3>{{ t('savedAccounts') }}</h3>
-            <span>{{ t('profilesMeta', { count: cli.profiles.length, name: cli.name }) }}</span>
           </div>
           <ul class="profiles">
           <li v-for="p in cli.profiles" :key="p.name" class="profile" :class="{ active: p.isActive }">
@@ -264,9 +263,12 @@ async function doSwitch(cli: CliView, p: ProfileView) {
   try {
     const res: SwitchResult | null = await api.switchTo(cli.id, p.name);
     if (res) {
-      const warns = res.warnings?.length ? '\n' + t('notePrefix', { msg: res.warnings.join(listSep()) }) : '';
-      toast(res.noOp ? 'info' : 'ok',
-            res.noOp ? t('alreadyActive', { name: p.name }) : t('switchedTo', { name: p.name }) + warns);
+      // 切换成功不再提示；仅当出现告警（回写失败等）时提醒
+      if (res.noOp) {
+        toast('info', t('alreadyActive', { name: p.name }));
+      } else if (res.warnings?.length) {
+        toast('err', t('notePrefix', { msg: res.warnings.join(listSep()) }));
+      }
     }
     await refresh();
   } catch (e: any) {
